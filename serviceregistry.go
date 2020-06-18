@@ -2,8 +2,9 @@ package serviceregistry
 
 import (
 	"fmt"
-	"log"
 	"reflect"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Service is a struct that can be registered into a ServiceRegistry for
@@ -24,20 +25,22 @@ type Service interface {
 type ServiceRegistry struct {
 	services     map[reflect.Type]Service // map of types to services.
 	serviceTypes []reflect.Type           // keep an ordered slice of registered service types.
+	logger       *log.Logger
 }
 
 // NewServiceRegistry starts a registry instance for convenience
-func NewServiceRegistry() *ServiceRegistry {
+func NewServiceRegistry(logger *log.Logger) *ServiceRegistry {
 	return &ServiceRegistry{
 		services: make(map[reflect.Type]Service),
+		logger:   logger,
 	}
 }
 
 // StartAll initialized each service in order of registration.
 func (s *ServiceRegistry) StartAll() {
-	log.Printf("Starting %d services: %v", len(s.serviceTypes), s.serviceTypes)
+	s.logger.Infof("Starting %d services: %v", len(s.serviceTypes), s.serviceTypes)
 	for _, kind := range s.serviceTypes {
-		log.Printf("Starting service type %v", kind)
+		s.logger.Debugf("Starting service type %v", kind)
 		go s.services[kind].Start()
 	}
 }
@@ -48,6 +51,7 @@ func (s *ServiceRegistry) StopAll() {
 	for i := len(s.serviceTypes) - 1; i >= 0; i-- {
 		kind := s.serviceTypes[i]
 		service := s.services[kind]
+		s.logger.Infof("Stopping %s", kind)
 		if err := service.Stop(); err != nil {
 			log.Panicf("Could not stop the following service: %v, %v", kind, err)
 		}
