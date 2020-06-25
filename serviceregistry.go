@@ -3,6 +3,7 @@ package serviceregistry
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -26,6 +27,7 @@ type ServiceRegistry struct {
 	services     map[reflect.Type]Service // map of types to services.
 	serviceTypes []reflect.Type           // keep an ordered slice of registered service types.
 	logger       *log.Logger
+	done         chan struct{}
 }
 
 // NewServiceRegistry starts a registry instance for convenience
@@ -56,6 +58,7 @@ func (s *ServiceRegistry) StopAll() {
 			log.Panicf("Could not stop the following service: %v, %v", kind, err)
 		}
 	}
+	close(s.done)
 }
 
 // Statuses returns a map of Service type -> error. The map will be populated
@@ -98,4 +101,21 @@ func (s *ServiceRegistry) FetchService(service interface{}) error {
 // GetLogger returns the logger contained in the ServiceRegistry struct.
 func (s *ServiceRegistry) GetLogger() *log.Logger {
 	return s.logger
+}
+
+// LogPeriodically logs the services' statuses at a defined interval.
+func (s *ServiceRegistry) LogPeriodically(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	for {
+		select {
+		case <-ticker.C:
+			for _, kind := range s.serviceTypes {
+				status := s.services[kind].Status()
+				s.logger.Infof("%s %s", kind, status)
+			}
+		case <-s.done:
+			s.logger.Info("All services stopped.")
+			return
+		}
+	}
 }
