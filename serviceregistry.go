@@ -94,3 +94,8 @@ func (s *ServiceRegistry) FetchService(service interface{}) error {
 	}
 	return fmt.Errorf("unknown service: %T", service)
 }
+
+// GetLogger returns the logger contained in the ServiceRegistry struct.
+func (s *ServiceRegistry) GetLogger() *log.Logger {
+	return s.logger
+}
