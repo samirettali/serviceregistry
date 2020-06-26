@@ -35,6 +35,7 @@ func NewServiceRegistry(logger *log.Logger) *ServiceRegistry {
 	return &ServiceRegistry{
 		services: make(map[reflect.Type]Service),
 		logger:   logger,
+		done:     make(chan struct{}),
 	}
 }
 
